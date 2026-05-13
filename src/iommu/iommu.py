@@ -4,19 +4,27 @@
 #
 # Manage the Linux IOMMU substrate via the kernel command line.
 #
-# Three substrate modes (mutually exclusive):
+# Four substrate modes (mutually exclusive):
 #
-#   off     -- IOMMU drivers disabled; no DMA isolation.
-#              `uio_pci_generic` works freely; `vfio-pci` works only
-#              with the `enable_unsafe_noiommu_mode` module knob.
+#   off-for-uio   -- IOMMU drivers disabled; no DMA isolation.
+#                    `uio_pci_generic` works freely. `vfio-pci` does
+#                    not work (no IOMMU groups exist).
 #
-#   strict  -- IOMMU active for every DMA, including host-owned
-#              devices. Highest isolation, highest per-DMA overhead.
+#   off-for-vfio  -- IOMMU drivers disabled and `vfio` is told to
+#                    create fake "noiommu" groups via
+#                    `vfio.enable_unsafe_noiommu_mode=1`, so `vfio-pci`
+#                    binds without an IOMMU backing it. As unsafe as
+#                    `off-for-uio` -- same lack of DMA isolation, just
+#                    a different userspace driver framework.
 #
-#   pt      -- IOMMU active but host-owned devices are in the
-#              passthrough domain; devices bound to `vfio-pci` get
-#              isolated translation. Most common for VM-passthrough /
-#              SPDK / DPDK workflows.
+#   strict        -- IOMMU active for every DMA, including host-owned
+#                    devices. Highest isolation, highest per-DMA
+#                    overhead.
+#
+#   pt            -- IOMMU active but host-owned devices are in the
+#                    passthrough domain; devices bound to `vfio-pci`
+#                    get isolated translation. Most common for
+#                    VM-passthrough / SPDK / DPDK workflows.
 #
 # Switching modes rewrites the kernel command line via the distro's
 # bootloader helper (`grubby` on Fedora/RHEL; `/etc/default/grub` +
@@ -38,16 +46,37 @@ import sys
 from pathlib import Path
 from shutil import which
 
+__version__ = "0.2.0"
+
 PROC_CMDLINE = Path("/proc/cmdline")
 DEFAULT_GRUB = Path("/etc/default/grub")
 DEV_IOMMU = Path("/dev/iommu")
 VFIO_CDEV_DIR = Path("/dev/vfio/devices")
 
+BASH_COMPLETION = r"""# bash completion for iommu
+_iommu() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local actions="show off-for-uio off-for-vfio strict pt"
+    local opts="--help --verbose --dry-run --print-completion"
+    if [[ ${cur} == -* ]]; then
+        COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+    else
+        COMPREPLY=($(compgen -W "${actions}" -- "${cur}"))
+    fi
+}
+complete -F _iommu iommu
+"""
+
 # Token sets per substrate mode. Mutating to a target mode adds these
 # tokens and removes every token from every other mode, so toggling
 # between modes leaves a clean cmdline.
 MODE_TOKENS = {
-    "off": {"intel_iommu=off", "amd_iommu=off"},
+    "off-for-uio": {"intel_iommu=off", "amd_iommu=off"},
+    "off-for-vfio": {
+        "intel_iommu=off",
+        "amd_iommu=off",
+        "vfio.enable_unsafe_noiommu_mode=1",
+    },
     "strict": {"intel_iommu=on", "amd_iommu=on"},
     "pt": {"intel_iommu=on", "amd_iommu=on", "iommu=pt"},
 }
@@ -70,7 +99,7 @@ def current_cmdline():
 
 
 def detect_mode(cmdline: str) -> str:
-    """Classify the cmdline into 'pt', 'strict', 'off', or 'unset'"""
+    """Classify the cmdline into one of MODE_TOKENS' keys, or 'unset'"""
 
     tokens = set(cmdline.split())
     if {"intel_iommu=on", "amd_iommu=on"} & tokens:
@@ -78,7 +107,9 @@ def detect_mode(cmdline: str) -> str:
             return "pt"
         return "strict"
     if {"intel_iommu=off", "amd_iommu=off"} & tokens:
-        return "off"
+        if "vfio.enable_unsafe_noiommu_mode=1" in tokens:
+            return "off-for-vfio"
+        return "off-for-uio"
     return "unset"
 
 
@@ -156,27 +187,22 @@ def update_via_default_grub(add, remove, dry_run):
         sys.exit(proc.returncode)
 
 
-def set_mode(args):
+def set_mode(mode: str, dry_run: bool):
     """Apply the substrate mode to the bootloader config"""
-
-    mode = args.mode
-    if mode not in MODE_TOKENS:
-        log.error(f"unknown mode: {mode}")
-        sys.exit(errno.EINVAL)
 
     add = MODE_TOKENS[mode]
     remove = ALL_TOKENS - add  # every token from every other mode
 
-    if not args.dry_run and os.geteuid() != 0:
+    if not dry_run and os.geteuid() != 0:
         log.error("Updating GRUB requires root. Re-run with sudo.")
         sys.exit(errno.EPERM)
 
     if which("grubby"):
-        update_via_grubby(add, remove, args.dry_run)
+        update_via_grubby(add, remove, dry_run)
     else:
-        update_via_default_grub(add, remove, args.dry_run)
+        update_via_default_grub(add, remove, dry_run)
 
-    verb = "Would set" if args.dry_run else "Set"
+    verb = "Would set" if dry_run else "Set"
     print(f"{verb} IOMMU mode to '{mode}'. Reboot for changes to take effect.")
 
 
@@ -184,54 +210,52 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Manage the Linux IOMMU substrate via the kernel command line",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would change without writing the bootloader config",
     )
-
-    sub = parser.add_subparsers(dest="command")
-    sub.add_parser(
-        "show",
-        help="Show current IOMMU mode, cmdline, and iommufd / vfio-cdev availability",
+    parser.add_argument(
+        "--print-completion",
+        choices=["bash"],
+        metavar="SHELL",
+        help="Print shell completion script to stdout and exit",
     )
-
-    set_parser = sub.add_parser(
-        "set",
-        help="Set the IOMMU substrate mode; reboot to apply",
-    )
-    set_parser.add_argument(
-        "mode",
-        choices=MODES,
+    parser.add_argument(
+        "action",
+        nargs="?",
+        default="show",
+        choices=["show", *MODES],
         help=(
-            "off: IOMMU drivers disabled. "
+            "show: print current mode and cmdline (default). "
+            "off-for-uio: IOMMU drivers disabled; uio_pci_generic works. "
+            "off-for-vfio: IOMMU drivers disabled + noiommu knob; vfio-pci works without isolation. "
             "strict: IOMMU on, translating for every device. "
             "pt: IOMMU on, host-owned devices in passthrough (most common)."
         ),
     )
 
-    args = parser.parse_args()
-    if args.command is None:
-        args.command = "show"
-    return args
+    return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.print_completion == "bash":
+        sys.stdout.write(BASH_COMPLETION)
+        return
 
     log.basicConfig(
         level=log.DEBUG if args.verbose else log.INFO,
         format="# %(levelname)s: %(message)s",
     )
 
-    if args.command == "show":
+    if args.action == "show":
         show_status(args)
-    elif args.command == "set":
-        set_mode(args)
     else:
-        log.error(f"Unknown command: {args.command}")
-        sys.exit(errno.EINVAL)
+        set_mode(args.action, args.dry_run)
 
 
 if __name__ == "__main__":

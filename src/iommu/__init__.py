@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Simon Andreas Frimann Lund <os@safl.dk>
 
-__version__ = "0.1.0"
+from .iommu import __version__, main
 
-from .iommu import main
-
-__all__ = ["main"]
+__all__ = ["__version__", "main"]

@@ -16,17 +16,28 @@ change applies on the next boot.
 
 ## Modes
 
-Three substrate modes, mutually exclusive.
+Four substrate modes, mutually exclusive.
 
-### `off`
+### `off-for-uio`
 
 Tokens: `intel_iommu=off amd_iommu=off`
 
 The IOMMU drivers don't load. No DMA isolation anywhere. `uio_pci_generic`
-works freely; `vfio-pci` works only with the `enable_unsafe_noiommu_mode`
-module knob (see [Modifiers](#modifiers) below). Zero overhead, zero
-protection -- appropriate on trusted hardware or for development where
-the IOMMU is undesirable.
+binds and works. `vfio-pci` does not work here -- there are no IOMMU
+groups for it to bind against. Zero overhead, zero protection --
+appropriate on trusted hardware or for development where the IOMMU is
+undesirable.
+
+### `off-for-vfio`
+
+Tokens: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
+
+Same as `off-for-uio` (IOMMU off, no DMA isolation), but also tells the
+`vfio` module to expose "noiommu" groups so `vfio-pci` binds without an
+IOMMU backing it. As unsafe as `off-for-uio` -- the same lack of
+isolation -- just a different userspace driver framework. Use this when
+your userspace driver stack (DPDK, SPDK, etc.) requires `vfio-pci` but
+you can't or don't want to turn the IOMMU on.
 
 ### `strict`
 
@@ -49,7 +60,7 @@ workflows. The most common production configuration.
 
 ## Modifiers
 
-Independent of the substrate mode, two further knobs sometimes apply:
+Independent of the substrate mode, one further knob sometimes applies:
 
 ### Unsafe interrupts (cmdline)
 
@@ -63,19 +74,6 @@ iommufd.allow_unsafe_interrupts=1
 
 Only meaningful when combined with `strict` or `pt`. This tool does not
 write them automatically today; they are listed here for awareness.
-
-### Noiommu vfio (module config)
-
-When the IOMMU is `off` but you still want to use `vfio-pci`, set this
-in `/etc/modprobe.d/`:
-
-```
-options vfio enable_unsafe_noiommu_mode=Y
-```
-
-This is a vfio-module parameter, not a cmdline token, and lives outside
-GRUB's domain. This tool does not write it today; the operator adds it
-manually.
 
 ## What this tool does *not* control
 
@@ -92,7 +90,7 @@ manually.
 
 ## Bootloader handling
 
-`iommu set <mode>` auto-detects the bootloader manager and writes the
+`iommu <mode>` auto-detects the bootloader manager and writes the
 new cmdline:
 
 - **`grubby`** (Fedora / RHEL): one `--update-kernel=ALL` invocation
@@ -118,15 +116,31 @@ cd iommu
 make install         # pipx install -e . --force
 ```
 
+Or standalone (single-file, stdlib only -- no pip needed):
+
+```
+curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
+  -o ~/.local/bin/iommu && chmod +x ~/.local/bin/iommu
+```
+
+## Shell completion
+
+```
+iommu --print-completion bash > ~/.local/share/bash-completion/completions/iommu
+```
+
+Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu <TAB>` lists `show off-for-uio off-for-vfio strict pt`.
+
 ## Usage
 
 ```
 iommu                              # = iommu show (no-arg default)
 iommu show                         # cmdline, mode, iommufd + vfio-cdev availability
-iommu --dry-run set pt             # preview without writing GRUB
-sudo iommu set pt && sudo reboot   # most common: IOMMU on, host passthrough
-sudo iommu set strict              # IOMMU on, translating for all devices
-sudo iommu set off                 # IOMMU disabled
+iommu --dry-run pt                 # preview without writing GRUB
+sudo iommu pt && sudo reboot       # most common: IOMMU on, host passthrough
+sudo iommu strict                  # IOMMU on, translating for all devices
+sudo iommu off-for-uio             # IOMMU disabled, uio_pci_generic ready
+sudo iommu off-for-vfio            # IOMMU disabled + noiommu knob, vfio-pci ready
 ```
 
 `iommu show` sample output:
