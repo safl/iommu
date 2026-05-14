@@ -36,6 +36,35 @@ Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu 
 ## Usage
 
 ```
+$ iommu --help
+usage: iommu [-h] [--version] [--verbose] [--dry-run]
+             [--print-completion SHELL]
+             [{show,off-for-uio,off-for-vfio,strict,pt}]
+
+Inspect and configure the IOMMU isolation level in Linux
+
+positional arguments:
+  {show,off-for-uio,off-for-vfio,strict,pt}
+                        show: print current mode and cmdline (default). off-
+                        for-uio: IOMMU drivers disabled; uio_pci_generic
+                        works. off-for-vfio: IOMMU drivers disabled + noiommu
+                        knob; vfio-pci works without isolation. strict: IOMMU
+                        on, translating for every device. pt: IOMMU on, host-
+                        owned devices in passthrough (most common).
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --verbose             Enable verbose logging
+  --dry-run             Show what would change without writing the bootloader
+                        config
+  --print-completion SHELL
+                        Print shell completion script to stdout and exit
+```
+
+A few common invocations:
+
+```
 iommu                              # = iommu show (no-arg default)
 iommu show                         # cmdline, mode, iommufd + vfio-cdev availability
 iommu --dry-run pt                 # preview without writing GRUB
