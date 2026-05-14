@@ -5,10 +5,11 @@
 Manage the Linux IOMMU substrate via the kernel command line.
 
 The Linux IOMMU (Intel VT-d, AMD-Vi) sits between the CPU and PCI
-devices, translating and isolating DMA. Userspace tools that talk to
+devices, translating and isolating DMA. User space tools that talk to
 PCI devices directly -- `vfio-pci` for VM passthrough, `vfio-pci` or
-`uio_pci_generic` for DPDK / SPDK -- interact with the IOMMU substrate
-differently depending on which mode the kernel was booted with.
+`uio_pci_generic` for DPDK/SPDK and xNVMe/uPCIe -- interact with the
+IOMMU substrate differently depending on which mode the kernel was
+booted with.
 
 `iommu` is a small CLI for inspecting the current mode and switching
 between them. It rewrites the bootloader's kernel command line; the
@@ -35,9 +36,9 @@ Tokens: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
 Same as `off-for-uio` (IOMMU off, no DMA isolation), but also tells the
 `vfio` module to expose "noiommu" groups so `vfio-pci` binds without an
 IOMMU backing it. As unsafe as `off-for-uio` -- the same lack of
-isolation -- just a different userspace driver framework. Use this when
-your userspace driver stack (DPDK, SPDK, etc.) requires `vfio-pci` but
-you can't or don't want to turn the IOMMU on.
+isolation -- just a different user space driver framework. Use this
+when your user space driver stack (DPDK/SPDK and xNVMe/uPCIe)
+requires `vfio-pci` but you can't or don't want to turn the IOMMU on.
 
 ### `strict`
 
@@ -55,8 +56,8 @@ Tokens: `intel_iommu=on amd_iommu=on iommu=pt`
 The IOMMU drivers load but host-owned devices skip translation (the
 passthrough domain). Devices bound to `vfio-pci` get switched to an
 isolated translating domain. Best of both worlds: native host
-performance plus full vfio isolation for VM passthrough / SPDK / DPDK
-workflows. The most common production configuration.
+performance plus full vfio isolation for VM-passthrough / user space
+drivers. The most common production configuration.
 
 ## Modifiers
 
@@ -81,7 +82,7 @@ write them automatically today; they are listed here for awareness.
   substrate modes above. On kernel 6.5+, `vfio-pci` exposes the legacy
   `/dev/vfio/<group>` container API *and* the iommufd cdev API at
   `/dev/vfio/devices/vfioN` (backed by `/dev/iommu`) simultaneously;
-  whichever the userspace consumer asks for is what it gets. `iommu`
+  whichever the user space consumer asks for is what it gets. `iommu`
   doesn't pick.
 - **`iommu.strict={0,1}`.** IOTLB-flush policy (lazy vs strict). An
   orthogonal perf-vs-isolation knob; modern x86 defaults to lazy.
@@ -155,11 +156,11 @@ vfio-cdev: 0 device(s) at /dev/vfio/devices
 ## Related
 
 - [`devbind`](https://github.com/xnvme/devbind) -- bind/unbind PCI
-  devices to userspace drivers (vfio-pci, uio_pci_generic, native).
+  devices to user space drivers (vfio-pci, uio_pci_generic, native).
   Complementary: `iommu` sets the substrate, `devbind` binds devices.
 - [`hugepages`](https://github.com/xnvme/hugepages) -- inspect and
-  reserve Linux hugepages, the other half of the DPDK / SPDK pre-flight
-  checklist.
+  reserve Linux hugepages, the other half of the
+  DPDK/SPDK and xNVMe/uPCIe pre-flight checklist.
 
 ## License
 

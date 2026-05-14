@@ -15,7 +15,8 @@
 #                    `vfio.enable_unsafe_noiommu_mode=1`, so `vfio-pci`
 #                    binds without an IOMMU backing it. As unsafe as
 #                    `off-for-uio` -- same lack of DMA isolation, just
-#                    a different userspace driver framework.
+#                    a different user space driver framework
+#                    (DPDK/SPDK and xNVMe/uPCIe).
 #
 #   strict        -- IOMMU active for every DMA, including host-owned
 #                    devices. Highest isolation, highest per-DMA
@@ -24,7 +25,7 @@
 #   pt            -- IOMMU active but host-owned devices are in the
 #                    passthrough domain; devices bound to `vfio-pci`
 #                    get isolated translation. Most common for
-#                    VM-passthrough / SPDK / DPDK workflows.
+#                    VM-passthrough / user space drivers.
 #
 # Switching modes rewrites the kernel command line via the distro's
 # bootloader helper (`grubby` on Fedora/RHEL; `/etc/default/grub` +
