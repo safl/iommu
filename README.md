@@ -2,6 +2,10 @@
 
 # iommu
 
+[![PyPI](https://img.shields.io/pypi/v/iommu.svg)](https://pypi.org/project/iommu/)
+[![Python](https://img.shields.io/pypi/pyversions/iommu.svg)](https://pypi.org/project/iommu/)
+[![Test](https://github.com/safl/iommu/actions/workflows/test.yml/badge.svg)](https://github.com/safl/iommu/actions/workflows/test.yml)
+
 Inspect and configure the IOMMU isolation level in Linux.
 
 The Linux IOMMU (Intel VT-d, AMD-Vi) sits between the CPU and PCI
@@ -36,9 +40,9 @@ Tokens: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
 Same as `off-for-uio` (IOMMU off, no DMA isolation), but also tells the
 `vfio` module to expose "noiommu" groups so `vfio-pci` binds without an
 IOMMU backing it. As unsafe as `off-for-uio` (same lack of isolation),
-just a different user space driver framework. Use this
-when your user space driver stack (DPDK/SPDK and xNVMe/uPCIe)
-requires `vfio-pci` but you can't or don't want to turn the IOMMU on.
+just a different user space driver framework. Use this when your user
+space driver stack (DPDK/SPDK and xNVMe/uPCIe) requires `vfio-pci` but
+you can't or don't want to turn the IOMMU on.
 
 ### `strict`
 
@@ -103,35 +107,6 @@ new cmdline:
 user, no root needed for the preview. The real write requires root
 (reading `/proc/cmdline` for `show` does not).
 
-## Install
-
-```
-pipx install iommu
-```
-
-Or from source:
-
-```
-git clone https://github.com/safl/iommu
-cd iommu
-make install         # pipx install -e . --force
-```
-
-Or standalone (single-file, stdlib only, no pip needed):
-
-```
-curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
-  -o ~/.local/bin/iommu && chmod +x ~/.local/bin/iommu
-```
-
-## Shell completion
-
-```
-iommu --print-completion bash > ~/.local/share/bash-completion/completions/iommu
-```
-
-Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu <TAB>` lists `show off-for-uio off-for-vfio strict pt`.
-
 ## Usage
 
 ```
@@ -153,15 +128,28 @@ iommufd:   available (/dev/iommu)
 vfio-cdev: 0 device(s) at /dev/vfio/devices
 ```
 
+## Install
+
+```
+pipx install iommu
+```
+
+Or standalone (single-file, stdlib only, no pip needed):
+
+```
+curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
+  -o ~/.local/bin/iommu && chmod +x ~/.local/bin/iommu
+```
+
+## Shell completion
+
+```
+iommu --print-completion bash > ~/.local/share/bash-completion/completions/iommu
+```
+
+Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu <TAB>` lists `show off-for-uio off-for-vfio strict pt`.
+
 ## Related
 
-- [`devbind`](https://github.com/xnvme/devbind): bind/unbind PCI
-  devices to user space drivers (vfio-pci, uio_pci_generic, native).
-  Complementary: `iommu` sets the substrate, `devbind` binds devices.
-- [`hugepages`](https://github.com/xnvme/hugepages): inspect and
-  reserve Linux hugepages, the other half of the
-  DPDK/SPDK and xNVMe/uPCIe pre-flight checklist.
-
-## License
-
-BSD-3-Clause.
+- [`devbind`](https://github.com/xnvme/devbind): inspect and control PCI device-driver binding in Linux.
+- [`hugepages`](https://github.com/xnvme/hugepages): inspect and manage Linux hugepages.
