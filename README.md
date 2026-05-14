@@ -1,8 +1,8 @@
-![iommu: inspect and configure IOMMU isolation level](https://raw.githubusercontent.com/safl/iommu/main/assets/banner.svg)
+![iommu: inspect and configure the IOMMU isolation level in Linux](https://raw.githubusercontent.com/safl/iommu/main/assets/banner.svg)
 
 # iommu
 
-Manage the Linux IOMMU substrate via the kernel command line.
+Inspect and configure the IOMMU isolation level in Linux.
 
 The Linux IOMMU (Intel VT-d, AMD-Vi) sits between the CPU and PCI
 devices, translating and isolating DMA. User space tools that talk to

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "iommu"
 dynamic = ["version"]
-description = "Manage the Linux IOMMU substrate via the kernel command line"
+description = "Inspect and configure the IOMMU isolation level in Linux"
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.10"

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Simon Andreas Frimann Lund <os@safl.dk>
 #
-# Manage the Linux IOMMU substrate via the kernel command line.
+# Inspect and configure the IOMMU isolation level in Linux.
 #
 # Four substrate modes (mutually exclusive):
 #
@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 from shutil import which
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 
 PROC_CMDLINE = Path("/proc/cmdline")
 DEFAULT_GRUB = Path("/etc/default/grub")
@@ -209,7 +209,7 @@ def set_mode(mode: str, dry_run: bool):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Manage the Linux IOMMU substrate via the kernel command line",
+        description="Inspect and configure the IOMMU isolation level in Linux",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
