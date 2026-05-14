@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 from shutil import which
 
-__version__ = "0.2.6"
+__version__ = "0.2.7"
 
 PROC_CMDLINE = Path("/proc/cmdline")
 DEFAULT_GRUB = Path("/etc/default/grub")

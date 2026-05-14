@@ -8,16 +8,65 @@
 
 Inspect and configure the IOMMU isolation level in Linux.
 
+`iommu` is a small CLI for inspecting the current IOMMU mode and
+switching between them. It rewrites the bootloader's kernel command
+line; the change applies on the next boot.
+
+## Install
+
+```
+pipx install iommu
+```
+
+Or standalone (single-file, stdlib only, no pip needed):
+
+```
+curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
+  -o ~/.local/bin/iommu && chmod +x ~/.local/bin/iommu
+```
+
+## Shell completion
+
+```
+iommu --print-completion bash > ~/.local/share/bash-completion/completions/iommu
+```
+
+Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu <TAB>` lists `show off-for-uio off-for-vfio strict pt`.
+
+## Usage
+
+```
+iommu                              # = iommu show (no-arg default)
+iommu show                         # cmdline, mode, iommufd + vfio-cdev availability
+iommu --dry-run pt                 # preview without writing GRUB
+sudo iommu pt && sudo reboot       # most common: IOMMU on, host passthrough
+sudo iommu strict                  # IOMMU on, translating for all devices
+sudo iommu off-for-uio             # IOMMU disabled, uio_pci_generic ready
+sudo iommu off-for-vfio            # IOMMU disabled + noiommu knob, vfio-pci ready
+```
+
+`iommu show` sample output:
+
+```
+cmdline:   BOOT_IMAGE=... root=UUID=... intel_iommu=on amd_iommu=on iommu=pt ...
+mode:      pt
+iommufd:   available (/dev/iommu)
+vfio-cdev: 0 device(s) at /dev/vfio/devices
+```
+
+## Related
+
+- [`devbind`](https://github.com/xnvme/devbind): inspect and control PCI device-driver binding in Linux.
+- [`hugepages`](https://github.com/xnvme/hugepages): inspect and manage Linux hugepages.
+
+## Background
+
 The Linux IOMMU (Intel VT-d, AMD-Vi) sits between the CPU and PCI
 devices, translating and isolating DMA. User space tools that talk to
 PCI devices directly (`vfio-pci` for VM passthrough, `vfio-pci` or
 `uio_pci_generic` for DPDK/SPDK and xNVMe/uPCIe) interact with the
 IOMMU substrate differently depending on which mode the kernel was
 booted with.
-
-`iommu` is a small CLI for inspecting the current mode and switching
-between them. It rewrites the bootloader's kernel command line; the
-change applies on the next boot.
 
 ## Modes
 
@@ -106,50 +155,3 @@ new cmdline:
 `--dry-run` shows the intended write without applying it; runs as any
 user, no root needed for the preview. The real write requires root
 (reading `/proc/cmdline` for `show` does not).
-
-## Usage
-
-```
-iommu                              # = iommu show (no-arg default)
-iommu show                         # cmdline, mode, iommufd + vfio-cdev availability
-iommu --dry-run pt                 # preview without writing GRUB
-sudo iommu pt && sudo reboot       # most common: IOMMU on, host passthrough
-sudo iommu strict                  # IOMMU on, translating for all devices
-sudo iommu off-for-uio             # IOMMU disabled, uio_pci_generic ready
-sudo iommu off-for-vfio            # IOMMU disabled + noiommu knob, vfio-pci ready
-```
-
-`iommu show` sample output:
-
-```
-cmdline:   BOOT_IMAGE=... root=UUID=... intel_iommu=on amd_iommu=on iommu=pt ...
-mode:      pt
-iommufd:   available (/dev/iommu)
-vfio-cdev: 0 device(s) at /dev/vfio/devices
-```
-
-## Install
-
-```
-pipx install iommu
-```
-
-Or standalone (single-file, stdlib only, no pip needed):
-
-```
-curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
-  -o ~/.local/bin/iommu && chmod +x ~/.local/bin/iommu
-```
-
-## Shell completion
-
-```
-iommu --print-completion bash > ~/.local/share/bash-completion/completions/iommu
-```
-
-Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu <TAB>` lists `show off-for-uio off-for-vfio strict pt`.
-
-## Related
-
-- [`devbind`](https://github.com/xnvme/devbind): inspect and control PCI device-driver binding in Linux.
-- [`hugepages`](https://github.com/xnvme/hugepages): inspect and manage Linux hugepages.
