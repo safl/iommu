@@ -53,10 +53,10 @@ def test_help_lists_all_modes():
 
 
 def test_dry_run_set_runs_unprivileged():
-    """`--dry-run <mode>` must work as any user (no GRUB write)"""
+    """`<mode> --dry-run` must work as any user (no GRUB write)"""
 
     result = subprocess.run(
-        [sys.executable, "-m", "iommu.iommu", "--dry-run", "pt"],
+        [sys.executable, "-m", "iommu.iommu", "pt", "--dry-run"],
         capture_output=True,
         text=True,
     )

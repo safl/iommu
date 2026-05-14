@@ -35,37 +35,37 @@ Open a new shell (or `source` the file) and tab-completion is live: `sudo iommu 
 
 ```
 $ iommu --help
-usage: iommu [-h] [--version] [--verbose] [--dry-run]
-             [--print-completion SHELL]
-             [{show,off-for-uio,off-for-vfio,strict,pt}]
+usage: iommu [-h] [--version] [--verbose] [--print-completion SHELL]
+             <action> ...
 
 Inspect and configure the IOMMU in Linux
 
 positional arguments:
-  {show,off-for-uio,off-for-vfio,strict,pt}
-                        show: print current mode and cmdline (default). off-
-                        for-uio: IOMMU drivers disabled; uio_pci_generic
-                        works. off-for-vfio: IOMMU drivers disabled + noiommu
-                        knob; vfio-pci works without isolation. strict: IOMMU
-                        on, translating for every device. pt: IOMMU on, host-
-                        owned devices in passthrough (most common).
+  <action>
+    show                print current mode and cmdline (default)
+    off-for-uio         IOMMU drivers disabled; uio_pci_generic works
+    off-for-vfio        IOMMU drivers disabled + noiommu knob; vfio-pci works
+                        without isolation
+    strict              IOMMU on, translating for every device
+    pt                  IOMMU on, host-owned devices in passthrough (most
+                        common)
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   --verbose             Enable verbose logging
-  --dry-run             Show what would change without writing the bootloader
-                        config
   --print-completion SHELL
                         Print shell completion script to stdout and exit
 ```
+
+Each set-mode action also takes a `--dry-run` flag; `iommu <mode> --help` prints the per-action help.
 
 A few common invocations:
 
 ```
 iommu                              # = iommu show (no-arg default)
 iommu show                         # cmdline, mode, iommufd + vfio-cdev availability
-iommu --dry-run pt                 # preview without writing GRUB
+iommu pt --dry-run                 # preview without writing GRUB
 sudo iommu pt && sudo reboot       # most common: IOMMU on, host passthrough
 sudo iommu strict                  # IOMMU on, translating for all devices
 sudo iommu off-for-uio             # IOMMU disabled, uio_pci_generic ready
@@ -101,7 +101,7 @@ Four substrate modes, mutually exclusive.
 
 ### `off-for-uio`
 
-Tokens: `intel_iommu=off amd_iommu=off`
+Kernel parameters: `intel_iommu=off amd_iommu=off`
 
 The IOMMU drivers don't load. No DMA isolation anywhere. `uio_pci_generic`
 binds and works. `vfio-pci` does not work here; there are no IOMMU
@@ -111,7 +111,7 @@ undesirable.
 
 ### `off-for-vfio`
 
-Tokens: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
+Kernel parameters: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
 
 Same as `off-for-uio` (IOMMU off, no DMA isolation), but also tells the
 `vfio` module to expose "noiommu" groups so `vfio-pci` binds without an
@@ -122,7 +122,7 @@ you can't or don't want to turn the IOMMU on.
 
 ### `strict`
 
-Tokens: `intel_iommu=on amd_iommu=on`
+Kernel parameters: `intel_iommu=on amd_iommu=on`
 
 The IOMMU drivers load and every DMA from every device is translated,
 including host-owned devices. Maximum isolation; defends the host kernel
@@ -131,7 +131,7 @@ from malicious or buggy DMA. Highest per-DMA overhead. This is what
 
 ### `pt` (passthrough)
 
-Tokens: `intel_iommu=on amd_iommu=on iommu=pt`
+Kernel parameters: `intel_iommu=on amd_iommu=on iommu=pt`
 
 The IOMMU drivers load but host-owned devices skip translation (the
 passthrough domain). Devices bound to `vfio-pci` get switched to an

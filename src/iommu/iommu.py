@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 from shutil import which
 
-__version__ = "0.2.10"
+__version__ = "0.3.0"
 
 PROC_CMDLINE = Path("/proc/cmdline")
 DEFAULT_GRUB = Path("/etc/default/grub")
@@ -58,11 +58,26 @@ BASH_COMPLETION = r"""# bash completion for iommu
 _iommu() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local actions="show off-for-uio off-for-vfio strict pt"
-    local opts="--help --verbose --dry-run --print-completion"
+    local global_opts="--help --verbose --version --print-completion"
+    local mode_opts="--dry-run --help"
+    local cmd=""
+    local i
+    for ((i = 1; i < COMP_CWORD; i++)); do
+        case "${COMP_WORDS[i]}" in
+            show|off-for-uio|off-for-vfio|strict|pt) cmd="${COMP_WORDS[i]}"; break ;;
+        esac
+    done
     if [[ ${cur} == -* ]]; then
-        COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+        case "${cmd}" in
+            off-for-uio|off-for-vfio|strict|pt)
+                COMPREPLY=($(compgen -W "${mode_opts}" -- "${cur}")) ;;
+            *)
+                COMPREPLY=($(compgen -W "${global_opts}" -- "${cur}")) ;;
+        esac
     else
-        COMPREPLY=($(compgen -W "${actions}" -- "${cur}"))
+        if [[ -z "${cmd}" ]]; then
+            COMPREPLY=($(compgen -W "${actions}" -- "${cur}"))
+        fi
     fi
 }
 complete -F _iommu iommu
@@ -207,6 +222,14 @@ def set_mode(mode: str, dry_run: bool):
     print(f"{verb} IOMMU mode to '{mode}'. Reboot for changes to take effect.")
 
 
+MODE_HELP = {
+    "off-for-uio": "IOMMU drivers disabled; uio_pci_generic works",
+    "off-for-vfio": "IOMMU drivers disabled + noiommu knob; vfio-pci works without isolation",
+    "strict": "IOMMU on, translating for every device",
+    "pt": "IOMMU on, host-owned devices in passthrough (most common)",
+}
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Inspect and configure the IOMMU in Linux",
@@ -214,29 +237,21 @@ def parse_args():
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what would change without writing the bootloader config",
-    )
-    parser.add_argument(
         "--print-completion",
         choices=["bash"],
         metavar="SHELL",
         help="Print shell completion script to stdout and exit",
     )
-    parser.add_argument(
-        "action",
-        nargs="?",
-        default="show",
-        choices=["show", *MODES],
-        help=(
-            "show: print current mode and cmdline (default). "
-            "off-for-uio: IOMMU drivers disabled; uio_pci_generic works. "
-            "off-for-vfio: IOMMU drivers disabled + noiommu knob; vfio-pci works without isolation. "
-            "strict: IOMMU on, translating for every device. "
-            "pt: IOMMU on, host-owned devices in passthrough (most common)."
-        ),
-    )
+
+    subparsers = parser.add_subparsers(dest="action", metavar="<action>")
+    subparsers.add_parser("show", help="print current mode and cmdline (default)")
+    for mode, summary in MODE_HELP.items():
+        sub = subparsers.add_parser(mode, help=summary)
+        sub.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show what would change without writing the bootloader config",
+        )
 
     return parser.parse_args()
 
@@ -253,10 +268,11 @@ def main():
         format="# %(levelname)s: %(message)s",
     )
 
-    if args.action == "show":
+    action = args.action or "show"
+    if action == "show":
         show_status(args)
     else:
-        set_mode(args.action, args.dry_run)
+        set_mode(action, getattr(args, "dry_run", False))
 
 
 if __name__ == "__main__":
