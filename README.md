@@ -45,12 +45,12 @@ sudo iommu off-for-uio             # IOMMU disabled, uio_pci_generic ready
 sudo iommu off-for-vfio            # IOMMU disabled + noiommu knob, vfio-pci ready
 ```
 
-`iommu show` sample output:
+`iommu show` sample output (here from a WSL host with the IOMMU disabled by the WSL kernel; on a typical bare-metal host the `cmdline` contains the `intel_iommu` / `amd_iommu` / `iommu=pt` tokens and `mode` reads one of `off-for-uio`, `off-for-vfio`, `strict`, or `pt`):
 
 ```
-cmdline:   BOOT_IMAGE=... root=UUID=... intel_iommu=on amd_iommu=on iommu=pt ...
-mode:      pt
-iommufd:   available (/dev/iommu)
+cmdline:   initrd=\initrd.img WSL_ROOT_INIT=1 panic=-1 nr_cpus=16 hv_utils.timesync_implicit=1 console=hvc0 debug pty.legacy_count=0 WSL_ENABLE_CRASH_DUMP=1
+mode:      unset
+iommufd:   absent (/dev/iommu)
 vfio-cdev: 0 device(s) at /dev/vfio/devices
 ```
 
