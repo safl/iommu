@@ -1,6 +1,6 @@
 # iommu
 
-![iommu: inspect and configure IOMMU isolation level](assets/banner.svg)
+![iommu: inspect and configure IOMMU isolation level](https://raw.githubusercontent.com/safl/iommu/main/assets/banner.svg)
 
 Manage the Linux IOMMU substrate via the kernel command line.
 
