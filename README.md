@@ -1,13 +1,13 @@
 # iommu
 
-![iommu — inspect and configure IOMMU isolation level](assets/banner.svg)
+![iommu: inspect and configure IOMMU isolation level](assets/banner.svg)
 
 Manage the Linux IOMMU substrate via the kernel command line.
 
 The Linux IOMMU (Intel VT-d, AMD-Vi) sits between the CPU and PCI
 devices, translating and isolating DMA. User space tools that talk to
-PCI devices directly -- `vfio-pci` for VM passthrough, `vfio-pci` or
-`uio_pci_generic` for DPDK/SPDK and xNVMe/uPCIe -- interact with the
+PCI devices directly (`vfio-pci` for VM passthrough, `vfio-pci` or
+`uio_pci_generic` for DPDK/SPDK and xNVMe/uPCIe) interact with the
 IOMMU substrate differently depending on which mode the kernel was
 booted with.
 
@@ -24,8 +24,8 @@ Four substrate modes, mutually exclusive.
 Tokens: `intel_iommu=off amd_iommu=off`
 
 The IOMMU drivers don't load. No DMA isolation anywhere. `uio_pci_generic`
-binds and works. `vfio-pci` does not work here -- there are no IOMMU
-groups for it to bind against. Zero overhead, zero protection --
+binds and works. `vfio-pci` does not work here; there are no IOMMU
+groups for it to bind against. Zero overhead, zero protection;
 appropriate on trusted hardware or for development where the IOMMU is
 undesirable.
 
@@ -35,8 +35,8 @@ Tokens: `intel_iommu=off amd_iommu=off vfio.enable_unsafe_noiommu_mode=1`
 
 Same as `off-for-uio` (IOMMU off, no DMA isolation), but also tells the
 `vfio` module to expose "noiommu" groups so `vfio-pci` binds without an
-IOMMU backing it. As unsafe as `off-for-uio` -- the same lack of
-isolation -- just a different user space driver framework. Use this
+IOMMU backing it. As unsafe as `off-for-uio` (same lack of isolation),
+just a different user space driver framework. Use this
 when your user space driver stack (DPDK/SPDK and xNVMe/uPCIe)
 requires `vfio-pci` but you can't or don't want to turn the IOMMU on.
 
@@ -99,7 +99,7 @@ new cmdline:
 - **`/etc/default/grub` + `update-grub`** (Debian / Ubuntu): rewrites
   `GRUB_CMDLINE_LINUX` in place, then runs `update-grub`.
 
-`--dry-run` shows the intended write without applying it -- runs as any
+`--dry-run` shows the intended write without applying it; runs as any
 user, no root needed for the preview. The real write requires root
 (reading `/proc/cmdline` for `show` does not).
 
@@ -117,7 +117,7 @@ cd iommu
 make install         # pipx install -e . --force
 ```
 
-Or standalone (single-file, stdlib only -- no pip needed):
+Or standalone (single-file, stdlib only, no pip needed):
 
 ```
 curl -fsSL https://raw.githubusercontent.com/safl/iommu/main/src/iommu/iommu.py \
@@ -155,10 +155,10 @@ vfio-cdev: 0 device(s) at /dev/vfio/devices
 
 ## Related
 
-- [`devbind`](https://github.com/xnvme/devbind) -- bind/unbind PCI
+- [`devbind`](https://github.com/xnvme/devbind): bind/unbind PCI
   devices to user space drivers (vfio-pci, uio_pci_generic, native).
   Complementary: `iommu` sets the substrate, `devbind` binds devices.
-- [`hugepages`](https://github.com/xnvme/hugepages) -- inspect and
+- [`hugepages`](https://github.com/xnvme/hugepages): inspect and
   reserve Linux hugepages, the other half of the
   DPDK/SPDK and xNVMe/uPCIe pre-flight checklist.
 
