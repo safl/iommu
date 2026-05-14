@@ -1,12 +1,10 @@
-![iommu: inspect and configure the IOMMU isolation level in Linux](https://raw.githubusercontent.com/safl/iommu/main/assets/banner.svg)
+![iommu: inspect and configure the IOMMU in Linux](https://raw.githubusercontent.com/safl/iommu/main/assets/banner.svg)
 
 # iommu
 
 [![PyPI](https://img.shields.io/pypi/v/iommu.svg)](https://pypi.org/project/iommu/)
 [![Python](https://img.shields.io/pypi/pyversions/iommu.svg)](https://pypi.org/project/iommu/)
 [![Test](https://github.com/safl/iommu/actions/workflows/test.yml/badge.svg)](https://github.com/safl/iommu/actions/workflows/test.yml)
-
-Inspect and configure the IOMMU isolation level in Linux.
 
 `iommu` is a small CLI for inspecting the current IOMMU mode and
 switching between them. It rewrites the bootloader's kernel command
@@ -41,7 +39,7 @@ usage: iommu [-h] [--version] [--verbose] [--dry-run]
              [--print-completion SHELL]
              [{show,off-for-uio,off-for-vfio,strict,pt}]
 
-Inspect and configure the IOMMU isolation level in Linux
+Inspect and configure the IOMMU in Linux
 
 positional arguments:
   {show,off-for-uio,off-for-vfio,strict,pt}
